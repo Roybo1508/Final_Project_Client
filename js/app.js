@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://final-project-server-rdim.onrender.com/api';
 
 const state = {
   role:       'user',
