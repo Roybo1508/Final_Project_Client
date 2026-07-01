@@ -6,6 +6,7 @@ const state = {
   viewMode:   'grid',
   breadcrumbs: ['Home', 'My Files'],
   adminUsers: [],
+  allFiles: [],
   isLoading: false,
 };
 
@@ -54,6 +55,15 @@ async function loadAdminUsers() {
   }
 }
 
+async function loadAllFiles() {
+  try {
+    const data = await apiCall('/files/admin/all');
+    state.allFiles = data.files;
+  } catch (error) {
+    showToast('Failed to load files', 'error');
+  }
+}
+
 const VIEW_TITLES = {
   'home':             'My Files',
   'my-files':         'My Files',
@@ -63,6 +73,7 @@ const VIEW_TITLES = {
   'settings':         'Settings',
   'server-dashboard': 'Server Dashboard',
   'user-management':  'User Management',
+  'all-files':        'All Files',
   'storage-backup':   'Storage & Backup',
   'security-logs':    'Security & Logs',
   'work-projects':    'Work Projects',
@@ -96,6 +107,7 @@ function getBreadcrumbs(view) {
     'settings':         ['Home', 'Settings'],
     'server-dashboard': ['Home', 'Server Dashboard'],
     'user-management':  ['Home', 'User Management'],
+    'all-files':        ['Home', 'All Files'],
     'storage-backup':   ['Home', 'Storage & Backup'],
     'security-logs':    ['Home', 'Security & Logs'],
   };
@@ -191,6 +203,8 @@ function renderContent(searchQuery) {
       container.appendChild(renderServerDashboard());
     } else if (activeView === 'user-management') {
       container.appendChild(renderUserManagement());
+    } else if (activeView === 'all-files') {
+      container.appendChild(renderAllFiles());
     } else if (activeView === 'storage-backup') {
       container.appendChild(renderStorageBackup());
     } else if (activeView === 'security-logs') {
@@ -251,6 +265,9 @@ async function navigateTo(view) {
   // Load admin data if needed
   if (view === 'user-management' && state.adminUsers.length === 0) {
     await loadAdminUsers();
+  }
+  if (view === 'all-files' && state.allFiles.length === 0) {
+    await loadAllFiles();
   }
 
   renderContent();

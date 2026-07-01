@@ -331,6 +331,7 @@ const ICONS = {
   alert:      makeSvg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'),
   database:   makeSvg('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>'),
   refresh:    makeSvg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>'),
+  file:       makeSvg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'),
 };
 
 function renderServerDashboard() {
@@ -520,6 +521,90 @@ function renderUserManagement() {
     row.appendChild(storageCell);
     row.appendChild(statusBadge);
     row.appendChild(actions);
+    table.appendChild(row);
+  });
+
+  view.appendChild(sectionHeader);
+  view.appendChild(table);
+  return view;
+}
+
+function renderAllFiles() {
+  const view = document.createElement('div');
+  view.className = 'admin-view';
+
+  const sectionHeader = document.createElement('div');
+  sectionHeader.className = 'admin-section-header';
+
+  const title = document.createElement('h3');
+  title.className = 'admin-section-title';
+  title.textContent = `All Files (${state.allFiles.length})`;
+  sectionHeader.appendChild(title);
+
+  const table = document.createElement('div');
+  table.className = 'file-table';
+  table.setAttribute('role', 'table');
+  table.setAttribute('aria-label', 'All files across all users');
+
+  const tableHeader = document.createElement('div');
+  tableHeader.className = 'file-table-header';
+  tableHeader.setAttribute('role', 'row');
+  tableHeader.innerHTML = `
+    <span>File</span>
+    <span>Owner</span>
+    <span class="col-type">Type</span>
+    <span class="col-size">Size</span>
+    <span class="col-date">Uploaded</span>
+  `;
+  table.appendChild(tableHeader);
+
+  if (state.allFiles.length === 0) {
+    const emptyRow = document.createElement('div');
+    emptyRow.className = 'file-table-empty';
+    emptyRow.textContent = 'No files have been uploaded yet.';
+    table.appendChild(emptyRow);
+  }
+
+  state.allFiles.forEach((file) => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.setAttribute('role', 'row');
+
+    const nameCell = document.createElement('div');
+    nameCell.className = 'file-row-identity';
+    const icon = document.createElement('span');
+    icon.className = 'file-row-icon';
+    icon.innerHTML = ICONS.file;
+    icon.setAttribute('aria-hidden', 'true');
+    const nameText = document.createElement('span');
+    nameText.className = 'file-row-name';
+    nameText.textContent = file.fileName;
+    nameCell.appendChild(icon);
+    nameCell.appendChild(nameText);
+
+    const ownerCell = document.createElement('div');
+    ownerCell.className = 'file-row-cell';
+    ownerCell.textContent = file.userId?.username || 'Unknown user';
+
+    const typeCell = document.createElement('div');
+    typeCell.className = 'file-row-cell col-type';
+    typeCell.textContent = file.fileType;
+
+    const sizeCell = document.createElement('div');
+    sizeCell.className = 'file-row-cell col-size';
+    sizeCell.textContent = file.fileSizeKB >= 1024
+      ? `${(file.fileSizeKB / 1024).toFixed(1)} MB`
+      : `${file.fileSizeKB} KB`;
+
+    const dateCell = document.createElement('div');
+    dateCell.className = 'file-row-cell col-date';
+    dateCell.textContent = new Date(file.createdAt).toLocaleDateString();
+
+    row.appendChild(nameCell);
+    row.appendChild(ownerCell);
+    row.appendChild(typeCell);
+    row.appendChild(sizeCell);
+    row.appendChild(dateCell);
     table.appendChild(row);
   });
 
