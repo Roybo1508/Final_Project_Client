@@ -147,7 +147,8 @@ function renderAddUserModal() {
   document.getElementById('addUserCreate').addEventListener('click', async () => {
     const newUser = {
       username: nameInput.value.trim(),
-      password: passwordInput.value
+      password: passwordInput.value,
+      role: roleSelect.value
     };
 
     const { valid, errors } = validateUserForm(newUser);
@@ -222,6 +223,7 @@ function renderEditUserModal(userIndex) {
   document.getElementById('editUserSave').addEventListener('click', async () => {
     const updatedUser = {
       username: nameInput.value.trim(),
+      role: roleSelect.value
     };
 
     const { valid, errors } = validateUserForm(updatedUser);

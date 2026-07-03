@@ -46,7 +46,7 @@ async function loadAdminUsers() {
       _id: user._id,
       initial: user.username?.charAt(0).toUpperCase() || 'U',
       name: user.username,
-      role: 'Standard User',
+      role: user.role || 'Standard User',
       storage: '0 GB',
       storagePercent: 0,
       status: 'active',
@@ -393,6 +393,10 @@ function updateActiveNav(viewId) {
 }
 
 async function switchRole(role) {
+  if (role === 'admin' && !isAdminUser()) {
+    showToast('You do not have admin access', 'error');
+    return;
+  }
   state.role = role;
   const isAdmin = role === 'admin';
   const userInitial = (state.currentUser?.username || 'U').charAt(0).toUpperCase();
@@ -490,9 +494,14 @@ function showAuthScreen() {
   appShell.hidden = true;
 }
 
+function isAdminUser() {
+  return state.currentUser?.role === 'Admin';
+}
+
 function enterApp() {
   authScreen.hidden = true;
   appShell.hidden = false;
+  document.getElementById('simulateRole').hidden = !isAdminUser();
   switchRole('user');
 }
 
@@ -513,7 +522,7 @@ async function handleAuthSubmit(e) {
   try {
     const endpoint = authMode === 'register' ? '/users/register' : '/users/login';
     const data = await apiCall(endpoint, 'POST', { username, password });
-    const user = { id: data.user.id, username: data.user.username };
+    const user = { id: data.user.id, username: data.user.username, role: data.user.role };
     state.currentUser = user;
     localStorage.setItem('mycloudUser', JSON.stringify(user));
     enterApp();
