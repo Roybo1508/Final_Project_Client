@@ -136,6 +136,11 @@ ul {
 .toast.info    { border-left-color: var(--accent-blue); }
 
 /* ---- Auth screen ---- */
+.auth-screen[hidden],
+.app-shell[hidden] {
+  display: none;
+}
+
 .auth-screen {
   position: fixed;
   inset: 0;
