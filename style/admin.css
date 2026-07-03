@@ -489,59 +489,6 @@
   flex-shrink: 0;
 }
 
-.backup-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.backup-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: rgba(59, 126, 244, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-blue);
-  flex-shrink: 0;
-}
-
-.backup-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.backup-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.backup-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.backup-time {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.backup-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--accent-green);
-  font-weight: 500;
-}
-
 .security-events-list {
   display: flex;
   flex-direction: column;

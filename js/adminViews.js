@@ -329,8 +329,6 @@ const ICONS = {
   shield:     makeSvg('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
   info:       makeSvg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'),
   alert:      makeSvg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'),
-  database:   makeSvg('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>'),
-  refresh:    makeSvg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>'),
   file:       makeSvg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'),
 };
 
@@ -683,49 +681,8 @@ function renderStorageBackup() {
 
   breakdownSection.appendChild(breakdownList);
 
-  const backupSection = document.createElement('div');
-  backupSection.className = 'admin-section';
-  const backupTitle = document.createElement('h3');
-  backupTitle.className = 'admin-section-title';
-  backupTitle.textContent = 'Backup';
-  backupSection.appendChild(backupTitle);
-
-  const backupCard = document.createElement('div');
-  backupCard.className = 'backup-card';
-
-  const backupIcon = document.createElement('div');
-  backupIcon.className = 'backup-icon';
-  backupIcon.innerHTML = ICONS.database;
-
-  const backupInfo = document.createElement('div');
-  backupInfo.className = 'backup-info';
-  const backupLabel = document.createElement('div');
-  backupLabel.className = 'backup-label';
-  backupLabel.textContent = 'Automatic backup';
-  const backupTime = document.createElement('div');
-  backupTime.className = 'backup-time';
-  backupTime.textContent = 'Last run: Today at 03:00 AM · Next: Tomorrow 03:00 AM';
-  backupInfo.appendChild(backupLabel);
-  backupInfo.appendChild(backupTime);
-
-  const backupStatus = document.createElement('div');
-  backupStatus.className = 'backup-status';
-  backupStatus.innerHTML = ICONS.check + ' Completed';
-
-  const runBtn = document.createElement('button');
-  runBtn.className = 'admin-section-action';
-  runBtn.innerHTML = ICONS.refresh + 'Run now';
-  runBtn.addEventListener('click', () => showToast('Backup started', 'success'));
-
-  backupCard.appendChild(backupIcon);
-  backupCard.appendChild(backupInfo);
-  backupCard.appendChild(backupStatus);
-  backupCard.appendChild(runBtn);
-  backupSection.appendChild(backupCard);
-
   view.appendChild(overviewCard);
   view.appendChild(breakdownSection);
-  view.appendChild(backupSection);
   return view;
 }
 

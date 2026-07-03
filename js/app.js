@@ -5,10 +5,16 @@ const state = {
   activeView: 'my-files',
   viewMode:   'grid',
   breadcrumbs: ['Home', 'My Files'],
+  currentUser: null,
+  userFiles: [],
+  filesLoading: false,
+  searchQuery: '',
   adminUsers: [],
   allFiles: [],
   isLoading: false,
 };
+
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
 // API helper functions
 async function apiCall(endpoint, method = 'GET', body = null) {
@@ -27,7 +33,6 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     }
     return data;
   } catch (error) {
-    console.error('API Error:', error);
     showToast(error.message || 'Network error', 'error');
     throw error;
   }
@@ -64,26 +69,125 @@ async function loadAllFiles() {
   }
 }
 
+function buildFilesQuery() {
+  const params = new URLSearchParams({ userId: state.currentUser.id });
+  if (state.activeView === 'photos') {
+    params.set('fileType', 'image');
+    params.set('includeData', 'true');
+  }
+  if (state.activeView === 'recent') {
+    params.set('sortBy', 'createdAt');
+    params.set('order', 'desc');
+  }
+  if (state.searchQuery) {
+    params.set('search', state.searchQuery);
+  }
+  return params.toString();
+}
+
+async function loadUserFiles() {
+  if (!state.currentUser) return;
+  state.filesLoading = true;
+  renderContent();
+  try {
+    const data = await apiCall(`/files?${buildFilesQuery()}`);
+    state.userFiles = data.files;
+  } catch (error) {
+    state.userFiles = [];
+  } finally {
+    state.filesLoading = false;
+    renderContent();
+  }
+}
+
+async function downloadFile(fileId) {
+  try {
+    const data = await apiCall(`/files/${fileId}/download`);
+    const link = document.createElement('a');
+    link.href = data.fileData;
+    link.download = data.fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast(`Downloading "${data.fileName}"`, 'success');
+  } catch (error) {
+    // apiCall already surfaces the error via toast
+  }
+}
+
+function confirmDeleteFile(file) {
+  showConfirmModal({
+    title: 'Delete File',
+    message: `Are you sure you want to delete <strong>${file.fileName}</strong>? This cannot be undone.`,
+    confirmText: 'Delete',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        await apiCall(`/files/${file._id}`, 'DELETE');
+        closeAppModal();
+        showToast('File deleted', 'success');
+        await loadUserFiles();
+      } catch (error) {
+        closeAppModal();
+      }
+    }
+  });
+}
+
+function mimeToFileType(mime) {
+  if (!mime) return 'other';
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
+  const docTypes = ['application/pdf', 'application/msword', 'text/', 'application/vnd'];
+  if (docTypes.some((t) => mime.startsWith(t))) return 'document';
+  return 'other';
+}
+
+function handleFileUpload(file) {
+  if (!file) return;
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    showToast('File is too large. Maximum size is 2 MB.', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      showToast(`Uploading "${file.name}"…`, 'info');
+      await apiCall('/files/upload', 'POST', {
+        userId: state.currentUser.id,
+        fileName: file.name,
+        fileType: mimeToFileType(file.type),
+        fileSizeKB: Math.max(1, Math.round(file.size / 1024)),
+        fileData: reader.result
+      });
+      showToast('File uploaded successfully', 'success');
+      await loadUserFiles();
+    } catch (error) {
+      // apiCall already surfaces the error via toast
+    }
+  };
+  reader.onerror = () => showToast('Could not read the file', 'error');
+  reader.readAsDataURL(file);
+}
+
 const VIEW_TITLES = {
   'home':             'My Files',
   'my-files':         'My Files',
   'photos':           'Photos',
-  'shared':           'Shared with Me',
   'recent':           'Recent',
-  'settings':         'Settings',
   'server-dashboard': 'Server Dashboard',
   'user-management':  'User Management',
   'all-files':        'All Files',
   'storage-backup':   'Storage & Backup',
   'security-logs':    'Security & Logs',
-  'work-projects':    'Work Projects',
 };
 
 const SEARCH_PLACEHOLDERS = {
-  'photos':   'Search in Photos...',
-  'shared':   'Search in Shared...',
-  'recent':   'Search in Recent...',
-  'settings': 'Search in Settings...',
+  'photos': 'Search in Photos...',
+  'recent': 'Search in Recent...',
 };
 
 function showToast(message, type = 'info') {
@@ -99,12 +203,8 @@ function getBreadcrumbs(view) {
   const map = {
     'home':             ['Home', 'My Files'],
     'my-files':         ['Home', 'My Files'],
-    'photos':           ['Home', 'My Files', 'Photos'],
-    'work-projects':    ['Home', 'My Files', 'Work Projects'],
-    'design-assets':    ['Home', 'Shared with Me', 'Design Assets'],
-    'shared':           ['Home', 'Shared with Me'],
+    'photos':           ['Home', 'Photos'],
     'recent':           ['Home', 'Recent'],
-    'settings':         ['Home', 'Settings'],
     'server-dashboard': ['Home', 'Server Dashboard'],
     'user-management':  ['Home', 'User Management'],
     'all-files':        ['Home', 'All Files'],
@@ -124,12 +224,12 @@ function buildBreadcrumbHTML(crumbs) {
 }
 
 function getCrumbView(crumbText) {
-  const map = { 'Home': 'home', 'My Files': 'my-files', 'Shared with Me': 'shared', 'Recent': 'recent' };
+  const map = { 'Home': 'home', 'My Files': 'my-files', 'Photos': 'photos', 'Recent': 'recent' };
   return map[crumbText] || 'home';
 }
 
 function isFilesView(view) {
-  return ['home', 'my-files', 'shared', 'recent', 'photos', 'work-projects', 'design-assets'].includes(view);
+  return ['home', 'my-files', 'recent', 'photos'].includes(view);
 }
 
 function renderContent(searchQuery) {
@@ -151,13 +251,6 @@ function renderContent(searchQuery) {
           <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
         </svg>
         Upload
-      </button>
-      <button class="btn-new-folder" id="newFolderBtn" aria-label="Create new folder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-        </svg>
-        New Folder
       </button>
       <div class="view-toggle" role="group" aria-label="View mode">
         <button class="view-btn ${viewMode === 'grid' ? 'active' : ''}" id="gridViewBtn" aria-label="Grid view" aria-pressed="${viewMode === 'grid'}">
@@ -223,21 +316,36 @@ function renderContent(searchQuery) {
     document.querySelector('.app-shell').classList.remove('admin-mode');
   }
 
-  if (activeView === 'photos') {
-    container.appendChild(renderPhotoGrid());
+  if (state.filesLoading) {
+    container.innerHTML = `
+      <div class="files-loading">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Loading your files…</p>
+      </div>
+    `;
+  } else if (state.userFiles.length === 0) {
+    const emptyMsg = state.searchQuery
+      ? `No files match "${state.searchQuery}"`
+      : (activeView === 'photos' ? 'No photos yet. Upload an image to get started.' : 'No files yet. Upload your first file.');
+    container.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p class="empty-state-title">${VIEW_TITLES[activeView] || 'My Files'}</p>
+        <p class="empty-state-body">${emptyMsg}</p>
+      </div>
+    `;
+  } else if (activeView === 'photos') {
+    container.appendChild(renderPhotoGrid(state.userFiles));
   } else {
-    const grid = renderFileGrid(activeView, isAdmin, searchQuery);
+    const grid = renderFileGrid(state.userFiles);
     if (viewMode === 'list') grid.classList.add('list-view');
     container.appendChild(grid);
   }
 
-  document.getElementById('uploadBtn').addEventListener('click', () => {
-    showToast('Upload feature coming soon', 'info');
-  });
-
-  document.getElementById('newFolderBtn').addEventListener('click', () => {
-    showToast('New folder created', 'success');
-  });
+  const fileInput = document.getElementById('fileUploadInput');
+  document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
 
   document.getElementById('gridViewBtn').addEventListener('click', () => {
     state.viewMode = 'grid';
@@ -260,23 +368,22 @@ function renderContent(searchQuery) {
 async function navigateTo(view) {
   state.activeView  = view;
   state.breadcrumbs = getBreadcrumbs(view);
+  state.searchQuery = '';
+  document.getElementById('searchInput').value = '';
   updateActiveNav(view);
 
-  // Load admin data if needed
-  if (view === 'user-management' && state.adminUsers.length === 0) {
+  if (isFilesView(view)) {
+    await loadUserFiles();
+    return;
+  }
+
+  if (view === 'user-management') {
     await loadAdminUsers();
   }
-  if (view === 'all-files' && state.allFiles.length === 0) {
+  if (view === 'all-files') {
     await loadAllFiles();
   }
 
-  renderContent();
-}
-
-function navigateToFolder(folder) {
-  state.activeView  = folder.id;
-  state.breadcrumbs = getBreadcrumbs(folder.id);
-  updateActiveNav('my-files');
   renderContent();
 }
 
@@ -289,26 +396,28 @@ function updateActiveNav(viewId) {
 async function switchRole(role) {
   state.role = role;
   const isAdmin = role === 'admin';
+  const userInitial = (state.currentUser?.username || 'U').charAt(0).toUpperCase();
 
   document.getElementById('userRoleBtn').classList.toggle('active', !isAdmin);
   document.getElementById('adminRoleBtn').classList.toggle('active', isAdmin);
   document.getElementById('adminSection').classList.toggle('visible', isAdmin);
   document.getElementById('statusBar').classList.toggle('visible', isAdmin);
 
-  document.getElementById('sidebarAvatar').textContent   = isAdmin ? 'A' : 'D';
-  document.getElementById('sidebarUserName').textContent = isAdmin ? 'Admin' : 'David';
+  document.getElementById('sidebarAvatar').textContent   = isAdmin ? 'A' : userInitial;
+  document.getElementById('sidebarUserName').textContent = isAdmin ? 'Admin' : (state.currentUser?.username || 'User');
   document.getElementById('sidebarUserRole').textContent = isAdmin ? 'Root Access' : 'Standard User';
-  document.getElementById('topbarAvatar').textContent    = isAdmin ? 'A' : 'D';
-
-  // Load admin data when switching to admin mode
-  if (isAdmin) {
-    await loadAdminUsers();
-  }
+  document.getElementById('topbarAvatar').textContent    = isAdmin ? 'A' : userInitial;
 
   state.activeView  = isAdmin ? 'home' : 'my-files';
   state.breadcrumbs = getBreadcrumbs(state.activeView);
   updateActiveNav(state.activeView);
-  renderContent();
+
+  if (isAdmin) {
+    await loadAdminUsers();
+    renderContent();
+  } else {
+    await loadUserFiles();
+  }
 }
 
 document.getElementById('mainNav').addEventListener('click', (e) => {
@@ -328,30 +437,127 @@ document.getElementById('adminSection').addEventListener('click', (e) => {
 document.getElementById('userRoleBtn').addEventListener('click', () => switchRole('user'));
 document.getElementById('adminRoleBtn').addEventListener('click', () => switchRole('admin'));
 
-document.getElementById('topbarAvatar').addEventListener('click', () => {
-  showToast('Profile settings coming soon', 'info');
-});
-
-document.getElementById('sidebarAvatar').addEventListener('click', () => {
-  showToast('Profile settings coming soon', 'info');
-});
-
 let searchTimeout;
 document.getElementById('searchInput').addEventListener('input', (e) => {
+  state.searchQuery = e.target.value.trim();
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    renderContent(e.target.value);
-  }, 250);
+    if (isFilesView(state.activeView)) {
+      loadUserFiles();
+    }
+  }, 300);
 });
 
 document.getElementById('searchInput').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     e.target.value = '';
-    renderContent();
+    state.searchQuery = '';
+    if (isFilesView(state.activeView)) loadUserFiles();
   }
 });
 
-// Initialize the app and load initial content
+document.getElementById('fileUploadInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  handleFileUpload(file);
+  e.target.value = '';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+// ---- Authentication ----
+
+const authScreen  = document.getElementById('authScreen');
+const appShell    = document.getElementById('appShell');
+let authMode = 'login';
+
+function showAuthMessage(text, type) {
+  const el = document.getElementById('authMessage');
+  el.textContent = text;
+  el.className = `auth-message ${type}`;
+  el.hidden = false;
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isRegister = mode === 'register';
+  document.getElementById('loginTab').classList.toggle('active', !isRegister);
+  document.getElementById('registerTab').classList.toggle('active', isRegister);
+  document.getElementById('usernameField').hidden = !isRegister;
+  document.getElementById('authSubmit').textContent = isRegister ? 'Create Account' : 'Log In';
+  document.getElementById('authMessage').hidden = true;
+}
+
+function showAuthScreen() {
+  authScreen.hidden = false;
+  appShell.hidden = true;
+}
+
+function enterApp() {
+  authScreen.hidden = true;
+  appShell.hidden = false;
+  switchRole('user');
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const username = document.getElementById('authUsername').value.trim();
+  const email    = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const submitBtn = document.getElementById('authSubmit');
+
+  if (!email || !password || (authMode === 'register' && !username)) {
+    showAuthMessage('Please fill in all fields.', 'error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Please wait…';
+
+  try {
+    let user;
+    if (authMode === 'register') {
+      const data = await apiCall('/users/register', 'POST', { username, email, password });
+      user = { id: data.user.id, username: data.user.username, email: data.user.email };
+    } else {
+      const data = await apiCall('/users/login', 'POST', { email, password });
+      user = { id: data.user.id, username: data.user.username, email: data.user.email };
+    }
+    state.currentUser = user;
+    localStorage.setItem('mycloudUser', JSON.stringify(user));
+    enterApp();
+  } catch (error) {
+    // apiCall shows a toast; also surface inline
+    showAuthMessage(error.message || 'Something went wrong.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = authMode === 'register' ? 'Create Account' : 'Log In';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('mycloudUser');
+  state.currentUser = null;
+  state.userFiles = [];
+  document.getElementById('authForm').reset();
+  setAuthMode('login');
+  showAuthScreen();
+}
+
+document.getElementById('loginTab').addEventListener('click', () => setAuthMode('login'));
+document.getElementById('registerTab').addEventListener('click', () => setAuthMode('register'));
+document.getElementById('authForm').addEventListener('submit', handleAuthSubmit);
+
+// ---- Init: restore session or show login ----
 (async () => {
-  renderContent();
+  const saved = localStorage.getItem('mycloudUser');
+  if (saved) {
+    try {
+      state.currentUser = JSON.parse(saved);
+      enterApp();
+      return;
+    } catch (e) {
+      localStorage.removeItem('mycloudUser');
+    }
+  }
+  showAuthScreen();
 })();

@@ -12,7 +12,41 @@
 </head>
 <body>
 
-  <div class="app-shell">
+  <div class="auth-screen" id="authScreen" hidden>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+        </svg>
+        <span>MyCloud</span>
+      </div>
+      <p class="auth-subtitle">Your personal cloud storage</p>
+
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab active" id="loginTab" role="tab">Log In</button>
+        <button class="auth-tab" id="registerTab" role="tab">Register</button>
+      </div>
+
+      <form class="auth-form" id="authForm">
+        <div class="auth-field" id="usernameField" hidden>
+          <label for="authUsername">Username</label>
+          <input type="text" id="authUsername" autocomplete="username" placeholder="Your name">
+        </div>
+        <div class="auth-field">
+          <label for="authEmail">Email</label>
+          <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div class="auth-field">
+          <label for="authPassword">Password</label>
+          <input type="password" id="authPassword" autocomplete="current-password" placeholder="At least 6 characters">
+        </div>
+        <p class="auth-message" id="authMessage" role="alert" hidden></p>
+        <button type="submit" class="auth-submit" id="authSubmit">Log In</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell" hidden>
 
     <aside class="sidebar" id="sidebar">
 
@@ -32,17 +66,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           My Files
         </a>
-        <a class="nav-item" data-view="shared" href="#">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Shared with Me
+        <a class="nav-item" data-view="photos" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Photos
         </a>
         <a class="nav-item" data-view="recent" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Recent
-        </a>
-        <a class="nav-item" data-view="settings" href="#">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
         </a>
       </nav>
 
@@ -84,7 +114,7 @@
             <span class="user-name" id="sidebarUserName">David</span>
             <span class="user-role-label" id="sidebarUserRole">Standard User</span>
           </div>
-          <button class="logout-btn" title="Sign out" aria-label="Sign out">
+          <button class="logout-btn" id="logoutBtn" title="Sign out" aria-label="Sign out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
@@ -122,25 +152,11 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="authModalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modalTitle">Change Authorizations</h3>
-        <button class="modal-close" id="modalClose" aria-label="Close modal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="modal-folder-info">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        <span>Editing access for:</span>
-        <span class="folder-name-chip" id="modalFolderChip">Photos</span>
-      </div>
-      <ul class="modal-user-list" id="modalUserList" aria-label="User access list"></ul>
-      <div class="modal-footer-row">
-        <button class="btn-done" id="modalDone">Done</button>
-      </div>
-    </div>
+  <div class="modal-overlay" id="authModalOverlay" role="dialog" aria-modal="true">
+    <div class="modal"></div>
   </div>
+
+  <input type="file" id="fileUploadInput" hidden>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

@@ -1,64 +1,34 @@
-const MODAL_USERS = [
-  { initial: 'A', name: 'Alex',  colorClass: 'color-indigo' },
-  { initial: 'R', name: 'Roee',  colorClass: 'color-blue'   },
-  { initial: 'V', name: 'Vova',  colorClass: 'color-violet' },
-  { initial: 'M', name: 'Mom',   colorClass: 'color-pink'   },
-];
+const appModalOverlay = document.getElementById('authModalOverlay');
 
-const authModalOverlay = document.getElementById('authModalOverlay');
-const modalUserList    = document.getElementById('modalUserList');
-const modalFolderChip  = document.getElementById('modalFolderChip');
-
-function renderAuthModal(folderName) {
-  modalFolderChip.textContent = folderName;
-  modalUserList.innerHTML = '';
-
-  MODAL_USERS.forEach((user) => {
-    const li = document.createElement('li');
-    li.className = 'modal-user-row';
-
-    const avatar = document.createElement('div');
-    avatar.className = `modal-user-avatar ${user.colorClass}`;
-    avatar.textContent = user.initial;
-    avatar.setAttribute('aria-hidden', 'true');
-
-    const nameEl = document.createElement('span');
-    nameEl.className = 'modal-user-name';
-    nameEl.textContent = user.name;
-
-    const label = document.createElement('label');
-    label.className = 'toggle-switch';
-    label.setAttribute('aria-label', `Grant access to ${user.name}`);
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-
-    const slider = document.createElement('span');
-    slider.className = 'toggle-slider';
-
-    label.appendChild(checkbox);
-    label.appendChild(slider);
-
-    li.appendChild(avatar);
-    li.appendChild(nameEl);
-    li.appendChild(label);
-    modalUserList.appendChild(li);
-  });
-
-  authModalOverlay.classList.add('open');
+function closeAppModal() {
+  appModalOverlay.classList.remove('open');
 }
 
-function closeAuthModal() {
-  authModalOverlay.classList.remove('open');
+appModalOverlay.addEventListener('click', (e) => {
+  if (e.target === appModalOverlay) closeAppModal();
+});
+
+function showConfirmModal({ title, message, confirmText = 'Confirm', danger = false, onConfirm }) {
+  const modal = appModalOverlay.querySelector('.modal');
+  const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3 class="modal-title">${title}</h3>
+      <button class="modal-close" id="confirmModalClose" aria-label="Close modal">${closeIcon}</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-message">${message}</p>
+    </div>
+    <div class="modal-footer-row">
+      <button class="btn-cancel" id="confirmModalCancel">Cancel</button>
+      <button class="${danger ? 'btn-danger' : 'btn-done'}" id="confirmModalConfirm">${confirmText}</button>
+    </div>
+  `;
+
+  modal.querySelector('#confirmModalClose').addEventListener('click', closeAppModal);
+  modal.querySelector('#confirmModalCancel').addEventListener('click', closeAppModal);
+  modal.querySelector('#confirmModalConfirm').addEventListener('click', () => onConfirm());
+
+  appModalOverlay.classList.add('open');
 }
-
-document.getElementById('modalClose').addEventListener('click', closeAuthModal);
-
-authModalOverlay.addEventListener('click', (e) => {
-  if (e.target === authModalOverlay) closeAuthModal();
-});
-
-document.getElementById('modalDone').addEventListener('click', () => {
-  closeAuthModal();
-  showToast('Access permissions updated', 'success');
-});
