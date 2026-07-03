@@ -46,7 +46,6 @@ async function loadAdminUsers() {
       _id: user._id,
       initial: user.username?.charAt(0).toUpperCase() || 'U',
       name: user.username,
-      email: user.email,
       role: 'Standard User',
       storage: '0 GB',
       storagePercent: 0,
@@ -482,7 +481,6 @@ function setAuthMode(mode) {
   const isRegister = mode === 'register';
   document.getElementById('loginTab').classList.toggle('active', !isRegister);
   document.getElementById('registerTab').classList.toggle('active', isRegister);
-  document.getElementById('usernameField').hidden = !isRegister;
   document.getElementById('authSubmit').textContent = isRegister ? 'Create Account' : 'Log In';
   document.getElementById('authMessage').hidden = true;
 }
@@ -501,11 +499,10 @@ function enterApp() {
 async function handleAuthSubmit(e) {
   e.preventDefault();
   const username = document.getElementById('authUsername').value.trim();
-  const email    = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const submitBtn = document.getElementById('authSubmit');
 
-  if (!email || !password || (authMode === 'register' && !username)) {
+  if (!username || !password) {
     showAuthMessage('Please fill in all fields.', 'error');
     return;
   }
@@ -514,14 +511,9 @@ async function handleAuthSubmit(e) {
   submitBtn.textContent = 'Please wait…';
 
   try {
-    let user;
-    if (authMode === 'register') {
-      const data = await apiCall('/users/register', 'POST', { username, email, password });
-      user = { id: data.user.id, username: data.user.username, email: data.user.email };
-    } else {
-      const data = await apiCall('/users/login', 'POST', { email, password });
-      user = { id: data.user.id, username: data.user.username, email: data.user.email };
-    }
+    const endpoint = authMode === 'register' ? '/users/register' : '/users/login';
+    const data = await apiCall(endpoint, 'POST', { username, password });
+    const user = { id: data.user.id, username: data.user.username };
     state.currentUser = user;
     localStorage.setItem('mycloudUser', JSON.stringify(user));
     enterApp();

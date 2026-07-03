@@ -21,9 +21,11 @@ function generateInitial(name) {
 function validateUserForm(data) {
   const errors = [];
   const name = data.name || data.username;
-  if (!name?.trim()) errors.push('Name is required');
-  if (!data.email?.trim()) errors.push('Email is required');
-  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.push('Invalid email format');
+  if (!name?.trim()) errors.push('Username is required');
+  if ('password' in data) {
+    if (!data.password?.trim()) errors.push('Password is required');
+    else if (data.password.length < 6) errors.push('Password must be at least 6 characters');
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -112,12 +114,11 @@ function renderAddUserModal() {
   `;
 
   const body = modal.querySelector('.modal-body');
-  const formGroup1 = createFormGroup('Name', 'text', 'name', '');
-  const formGroup2 = createFormGroup('Email', 'email', 'email', '');
+  const formGroup1 = createFormGroup('Username', 'text', 'name', '');
+  const formGroup2 = createFormGroup('Password', 'password', 'password', '');
   const formGroup3 = createFormGroup('Role', 'select', 'role', 'Standard User', ROLE_OPTIONS);
 
   const previewDiv = document.createElement('div');
-  previewDiv.style.marginTop = '12px';
   previewDiv.className = 'avatar-preview-row';
   previewDiv.innerHTML = '<span>Avatar:</span><div class="avatar-preview" id="avatarPreview"></div>';
 
@@ -127,7 +128,7 @@ function renderAddUserModal() {
   body.appendChild(previewDiv);
 
   const nameInput = formGroup1.querySelector('input');
-  const emailInput = formGroup2.querySelector('input');
+  const passwordInput = formGroup2.querySelector('input');
   const roleSelect = formGroup3.querySelector('select');
   const avatarPreview = document.getElementById('avatarPreview');
 
@@ -146,8 +147,7 @@ function renderAddUserModal() {
   document.getElementById('addUserCreate').addEventListener('click', async () => {
     const newUser = {
       username: nameInput.value.trim(),
-      email: emailInput.value.trim(),
-      password: 'TempPassword123!' // Temporary default password
+      password: passwordInput.value
     };
 
     const { valid, errors } = validateUserForm(newUser);
@@ -190,24 +190,20 @@ function renderEditUserModal(userIndex) {
   `;
 
   const body = modal.querySelector('.modal-body');
-  const formGroup1 = createFormGroup('Name', 'text', 'name', user.name);
-  const formGroup2 = createFormGroup('Email', 'email', 'email', user.email);
+  const formGroup1 = createFormGroup('Username', 'text', 'name', user.name);
   const formGroup3 = createFormGroup('Role', 'select', 'role', user.role, ROLE_OPTIONS);
   const formGroup4 = createFormGroup('Storage Used', 'readonly', 'storage', user.storage);
 
   const previewDiv = document.createElement('div');
-  previewDiv.style.marginTop = '12px';
   previewDiv.className = 'avatar-preview-row';
   previewDiv.innerHTML = '<span>Avatar:</span><div class="avatar-preview" id="avatarPreview"></div>';
 
   body.appendChild(formGroup1);
-  body.appendChild(formGroup2);
   body.appendChild(formGroup3);
   body.appendChild(formGroup4);
   body.appendChild(previewDiv);
 
   const nameInput = formGroup1.querySelector('input');
-  const emailInput = formGroup2.querySelector('input');
   const roleSelect = formGroup3.querySelector('select');
   const avatarPreview = document.getElementById('avatarPreview');
 
@@ -226,7 +222,6 @@ function renderEditUserModal(userIndex) {
   document.getElementById('editUserSave').addEventListener('click', async () => {
     const updatedUser = {
       username: nameInput.value.trim(),
-      email: emailInput.value.trim(),
     };
 
     const { valid, errors } = validateUserForm(updatedUser);
@@ -475,11 +470,7 @@ function renderUserManagement() {
     const nameEl = document.createElement('div');
     nameEl.className = 'user-row-name';
     nameEl.textContent = user.name;
-    const emailEl = document.createElement('div');
-    emailEl.className = 'user-row-email';
-    emailEl.textContent = user.email;
     nameBlock.appendChild(nameEl);
-    nameBlock.appendChild(emailEl);
 
     identity.appendChild(avatar);
     identity.appendChild(nameBlock);

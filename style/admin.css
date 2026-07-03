@@ -231,13 +231,6 @@
   text-overflow: ellipsis;
 }
 
-.user-row-email {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .user-row-cell {
   font-size: 11px;
@@ -661,6 +654,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 12px;
   font-size: 12px;
   color: var(--text-secondary);
 }
