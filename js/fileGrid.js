@@ -48,7 +48,7 @@ function renderFolderCard(folder) {
   deleteBtn.setAttribute('aria-label', `Delete ${folder.folderName}`);
   deleteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    deleteFolder(folder._id);
+    deleteFolder(folder);
   });
   card.appendChild(deleteBtn);
 

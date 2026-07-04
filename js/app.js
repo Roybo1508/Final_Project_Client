@@ -672,12 +672,21 @@ async function loadRootFolders() {
 }
 
 async function loadFolderContents(folderId) {
+  // Root has no folder document — there is no /folders/root route.
+  // Fall back to the dedicated root loaders instead of a broken request.
+  if (!folderId) {
+    state.currentFolderId = null;
+    state.folderBreadcrumb = [];
+    await loadRootFolders();
+    await loadUserFiles();
+    return;
+  }
+
   try {
     state.filesLoading = true;
     state.currentFolderId = folderId;
 
-    const endpoint = folderId ? `/folders/${folderId}` : '/folders/root';
-    const res = await apiCall(`${endpoint}?userId=${state.currentUser.id}`);
+    const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`);
     if (res.success) {
       state.userFiles = res.files || [];
       state.currentFolderFolders = res.subfolders || [];
@@ -694,6 +703,17 @@ async function loadFolderContents(folderId) {
 
 async function navigateToFolder(folderId) {
   await loadFolderContents(folderId);
+}
+
+// Refresh whatever the user is currently looking at — root or inside a folder.
+// Avoids calling loadFolderContents(null), which hits a non-existent /folders/root route.
+async function refreshCurrentView() {
+  if (state.currentFolderId) {
+    await loadFolderContents(state.currentFolderId);
+  } else {
+    await loadRootFolders();
+    await loadUserFiles();
+  }
 }
 
 async function goBack() {
@@ -735,9 +755,8 @@ async function createNewFolder(folderName, parentFolderId) {
 
     if (res.success) {
       showToast('Folder created successfully!', 'success');
-      await loadUserFolders();
-      await loadFolderContents(state.currentFolderId);
       closeFolderModal();
+      await refreshCurrentView();
     } else {
       showToast(res.message || 'Failed to create folder', 'error');
     }
@@ -754,9 +773,8 @@ async function renameFolder(folderId, newName) {
 
     if (res.success) {
       showToast('Folder renamed successfully!', 'success');
-      await loadUserFolders();
-      await loadFolderContents(state.currentFolderId);
       closeFolderModal();
+      await refreshCurrentView();
     } else {
       showToast(res.message || 'Failed to rename folder', 'error');
     }
@@ -765,25 +783,34 @@ async function renameFolder(folderId, newName) {
   }
 }
 
-async function deleteFolder(folderId) {
-  if (!confirm('Delete this folder and all its contents? This cannot be undone.')) {
-    return;
-  }
+async function deleteFolder(folder) {
+  // Accept either a folder object (preferred) or a bare id for backward compatibility.
+  const folderId = (folder && typeof folder === 'object') ? folder._id : folder;
+  const folderName = (folder && typeof folder === 'object') ? folder.folderName : 'this folder';
+  const itemCount = (folder && typeof folder === 'object' && folder.itemCount) || 0;
 
-  try {
-    const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`, 'DELETE');
+  const message = itemCount > 0
+    ? `Deleting <strong>${folderName}</strong> will permanently delete the <strong>${itemCount} item${itemCount === 1 ? '' : 's'}</strong> inside it (files and subfolders). This cannot be undone.`
+    : `Delete the empty folder <strong>${folderName}</strong>? This cannot be undone.`;
 
-    if (res.success) {
-      showToast('Folder deleted successfully!', 'success');
-      await loadUserFolders();
-      await loadFolderContents(state.currentFolderId);
-      closeFolderModal();
-    } else {
-      showToast(res.message || 'Failed to delete folder', 'error');
+  showConfirmModal({
+    title: 'Delete Folder',
+    message,
+    confirmText: itemCount > 0 ? `Delete folder + ${itemCount} item${itemCount === 1 ? '' : 's'}` : 'Delete folder',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`, 'DELETE');
+        closeAppModal();
+        if (res.success) {
+          showToast('Folder deleted', 'success');
+          await refreshCurrentView();
+        }
+      } catch (err) {
+        closeAppModal();
+      }
     }
-  } catch (err) {
-    showToast('Error deleting folder: ' + err.message, 'error');
-  }
+  });
 }
 
 async function moveFileToFolder(fileId, targetFolderId) {
@@ -794,9 +821,13 @@ async function moveFileToFolder(fileId, targetFolderId) {
     });
 
     if (res.success) {
-      showToast('File moved successfully!', 'success');
-      await loadUserFiles();
-      closeFolderModal();
+      const dest = targetFolderId
+        ? (state.userFolders.find(f => f._id === targetFolderId)?.folderName || 'folder')
+        : 'Root';
+      showToast(`File moved to ${dest}`, 'success');
+      closeMoveModal();
+      // Refresh so the source view drops the file AND folder item counts update.
+      await refreshCurrentView();
     } else {
       showToast(res.message || 'Failed to move file', 'error');
     }
