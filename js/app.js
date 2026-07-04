@@ -14,6 +14,7 @@ const state = {
   isLoading: false,
   userFolders: [],
   currentFolderId: null,
+  currentFolderParentId: null,
   folderBreadcrumb: [],
   currentFolderFolders: [],
 };
@@ -679,6 +680,7 @@ async function loadFolderContents(folderId) {
   // Fall back to the dedicated root loaders instead of a broken request.
   if (!folderId) {
     state.currentFolderId = null;
+    state.currentFolderParentId = null;
     state.folderBreadcrumb = [];
     await loadRootFolders();
     await loadUserFiles();
@@ -696,6 +698,8 @@ async function loadFolderContents(folderId) {
     if (res.success) {
       state.userFiles = res.files || [];
       state.currentFolderFolders = res.subfolders || [];
+      // Track the parent so the Back button can go up one level.
+      state.currentFolderParentId = res.folder ? (res.folder.parentFolderId || null) : null;
       // Backend doesn't return a full path; show at least the current folder name.
       state.folderBreadcrumb = res.breadcrumb
         || (res.folder ? [{ id: res.folder._id, name: res.folder.folderName }] : []);
@@ -728,14 +732,8 @@ async function refreshCurrentView() {
 }
 
 async function goBack() {
-  if (state.folderBreadcrumb && state.folderBreadcrumb.length > 0) {
-    // Go back to parent folder
-    const parentFolder = state.folderBreadcrumb[state.folderBreadcrumb.length - 1];
-    await navigateToFolder(parentFolder.id);
-  } else {
-    // Go back to root
-    await navigateToFolder(null);
-  }
+  // Go up one level: to the current folder's parent, or root if it has none.
+  await navigateToFolder(state.currentFolderParentId || null);
 }
 
 function updateFolderBreadcrumb() {
