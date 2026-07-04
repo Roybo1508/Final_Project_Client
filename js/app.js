@@ -4,13 +4,12 @@ const state = {
   role:       'user',
   activeView: 'my-files',
   viewMode:   'grid',
-  breadcrumbs: ['Home', 'My Files'],
+  breadcrumbs: ['Home', 'Documents'],
   currentUser: null,
   userFiles: [],
   filesLoading: false,
   searchQuery: '',
   adminUsers: [],
-  allFiles: [],
   isLoading: false,
   userFolders: [],
   currentFolderId: null,
@@ -64,14 +63,6 @@ async function loadAdminUsers() {
   }
 }
 
-async function loadAllFiles() {
-  try {
-    const data = await apiCall('/files/admin/all');
-    state.allFiles = data.files;
-  } catch (error) {
-    showToast('Failed to load files', 'error');
-  }
-}
 
 function buildFilesQuery() {
   const params = new URLSearchParams({ userId: state.currentUser.id });
@@ -179,14 +170,13 @@ function handleFileUpload(file) {
 }
 
 const VIEW_TITLES = {
-  'home':             'My Files',
-  'my-files':         'My Files',
+  'home':             'Documents',
+  'my-files':         'Documents',
   'photos':           'Photos',
   'recent':           'Recent',
   'server-dashboard': 'Server Dashboard',
   'user-management':  'User Management',
-  'all-files':        'All Files',
-  'storage-backup':   'Storage & Backup',
+  'storage-backup':   'Storage',
   'security-logs':    'Security & Logs',
 };
 
@@ -206,14 +196,13 @@ function showToast(message, type = 'info') {
 
 function getBreadcrumbs(view) {
   const map = {
-    'home':             ['Home', 'My Files'],
-    'my-files':         ['Home', 'My Files'],
+    'home':             ['Home', 'Documents'],
+    'my-files':         ['Home', 'Documents'],
     'photos':           ['Home', 'Photos'],
     'recent':           ['Home', 'Recent'],
     'server-dashboard': ['Home', 'Server Dashboard'],
     'user-management':  ['Home', 'User Management'],
-    'all-files':        ['Home', 'All Files'],
-    'storage-backup':   ['Home', 'Storage & Backup'],
+    'storage-backup':   ['Home', 'Storage'],
     'security-logs':    ['Home', 'Security & Logs'],
   };
   return map[view] || ['Home'];
@@ -229,7 +218,7 @@ function buildBreadcrumbHTML(crumbs) {
 }
 
 function getCrumbView(crumbText) {
-  const map = { 'Home': 'home', 'My Files': 'my-files', 'Photos': 'photos', 'Recent': 'recent' };
+  const map = { 'Home': 'home', 'Documents': 'my-files', 'Photos': 'photos', 'Recent': 'recent' };
   return map[crumbText] || 'home';
 }
 
@@ -245,7 +234,7 @@ function renderContent(searchQuery) {
 
   searchInput.placeholder = SEARCH_PLACEHOLDERS[activeView] || 'Search files...';
 
-  const title = VIEW_TITLES[activeView] || 'My Files';
+  const title = VIEW_TITLES[activeView] || 'Documents';
   const crumbsHTML = buildBreadcrumbHTML(breadcrumbs);
 
   const toolbarHTML = `
@@ -315,8 +304,6 @@ function renderContent(searchQuery) {
       container.appendChild(renderServerDashboard());
     } else if (activeView === 'user-management') {
       container.appendChild(renderUserManagement());
-    } else if (activeView === 'all-files') {
-      container.appendChild(renderAllFiles());
     } else if (activeView === 'storage-backup') {
       container.appendChild(renderStorageBackup());
     } else if (activeView === 'security-logs') {
@@ -354,7 +341,7 @@ function renderContent(searchQuery) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>
-        <p class="empty-state-title">${VIEW_TITLES[activeView] || 'My Files'}</p>
+        <p class="empty-state-title">${VIEW_TITLES[activeView] || 'Documents'}</p>
         <p class="empty-state-body">${emptyMsg}</p>
       </div>
     `;
@@ -414,9 +401,6 @@ async function navigateTo(view) {
 
   if (view === 'user-management') {
     await loadAdminUsers();
-  }
-  if (view === 'all-files') {
-    await loadAllFiles();
   }
 
   renderContent();
@@ -748,7 +732,7 @@ function updateFolderBreadcrumb() {
       if (idx < state.folderBreadcrumb.length - 1) html += '<span class="breadcrumb-sep">›</span>';
     });
   } else {
-    html += '<span class="breadcrumb-current">My Files</span>';
+    html += '<span class="breadcrumb-current">Documents</span>';
   }
 
   breadcrumbEl.innerHTML = html;
