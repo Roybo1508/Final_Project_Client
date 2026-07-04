@@ -129,7 +129,7 @@ function confirmDeleteFile(file) {
         await apiCall(`/files/${file._id}`, 'DELETE');
         closeAppModal();
         showToast('File deleted', 'success');
-        await loadUserFiles();
+        await refreshCurrentView();
       } catch (error) {
         closeAppModal();
       }
@@ -334,6 +334,9 @@ function renderContent(searchQuery) {
     document.querySelector('.app-shell').classList.remove('admin-mode');
   }
 
+  // Folders only apply to the file-browsing views (not Photos).
+  const foldersToShow = (activeView === 'photos') ? [] : (state.currentFolderFolders || []);
+
   if (state.filesLoading) {
     container.innerHTML = `
       <div class="files-loading">
@@ -341,7 +344,7 @@ function renderContent(searchQuery) {
         <p>Loading your files…</p>
       </div>
     `;
-  } else if (state.userFiles.length === 0) {
+  } else if (state.userFiles.length === 0 && foldersToShow.length === 0) {
     const emptyMsg = state.searchQuery
       ? `No files match "${state.searchQuery}"`
       : (activeView === 'photos' ? 'No photos yet. Upload an image to get started.' : 'No files yet. Upload your first file.');
@@ -357,7 +360,7 @@ function renderContent(searchQuery) {
   } else if (activeView === 'photos') {
     container.appendChild(renderPhotoGrid(state.userFiles));
   } else {
-    const grid = renderFileGrid(state.userFiles, state.currentFolderFolders);
+    const grid = renderFileGrid(state.userFiles, foldersToShow);
     if (viewMode === 'list') grid.classList.add('list-view');
     container.appendChild(grid);
   }
