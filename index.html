@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MyCloud</title>
+  <link rel="icon" type="image/svg+xml" href="images/logo.svg">
   <link rel="stylesheet" href="style/main.css">
   <link rel="stylesheet" href="style/sidebar.css">
   <link rel="stylesheet" href="style/content.css">
@@ -218,7 +219,7 @@
         <h3 id="moveModalTitle">Move File</h3>
         <button class="modal-close" onclick="closeMoveModal()" aria-label="Close move modal">×</button>
       </div>
-      <div style="padding: 20px;">
+      <div class="move-modal-body">
         <div class="form-group">
           <label>File:</label>
           <div id="moveFileName" class="file-name-display"></div>
@@ -227,7 +228,7 @@
           <label>Select destination:</label>
           <div id="moveModalFolders" class="folder-list"></div>
         </div>
-        <div class="form-actions" style="margin-top: 20px;">
+        <div class="form-actions move-modal-actions">
           <button type="button" onclick="closeMoveModal()" class="btn btn-secondary">Cancel</button>
         </div>
       </div>

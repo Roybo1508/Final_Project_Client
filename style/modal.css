@@ -412,6 +412,14 @@
   overflow-y: auto;
 }
 
+.move-modal-body {
+  padding: 20px;
+}
+
+.move-modal-actions {
+  margin-top: 20px;
+}
+
 .folder-list {
   display: flex;
   flex-direction: column;

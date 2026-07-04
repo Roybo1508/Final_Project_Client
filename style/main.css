@@ -290,3 +290,13 @@ ul {
   font-size: 13px;
   line-height: 1.5;
 }
+
+.modal-confirm-text {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.modal-confirm-subtext {
+  color: var(--text-muted);
+  font-size: 11px;
+}

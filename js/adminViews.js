@@ -260,8 +260,8 @@ function renderDeleteConfirmModal(userIndex) {
       </button>
     </div>
     <div class="modal-body">
-      <p style="color: var(--text-primary); margin-bottom: 12px;">Are you sure you want to delete <strong>${user.name}</strong>?</p>
-      <p style="color: var(--text-muted); font-size: 11px;">This action cannot be undone.</p>
+      <p class="modal-confirm-text">Are you sure you want to delete <strong>${user.name}</strong>?</p>
+      <p class="modal-confirm-subtext">This action cannot be undone.</p>
     </div>
     <div class="modal-footer-row">
       <button class="btn-cancel" id="deleteUserCancel">Cancel</button>
