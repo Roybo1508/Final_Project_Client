@@ -212,6 +212,28 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="moveModal" role="dialog" aria-modal="true" hidden>
+    <div class="modal-content" id="moveModalContent">
+      <div class="modal-header">
+        <h3 id="moveModalTitle">Move File</h3>
+        <button class="modal-close" onclick="closeMoveModal()" aria-label="Close move modal">×</button>
+      </div>
+      <div style="padding: 20px;">
+        <div class="form-group">
+          <label>File:</label>
+          <div id="moveFileName" class="file-name-display"></div>
+        </div>
+        <div class="form-group">
+          <label>Select destination:</label>
+          <div id="moveModalFolders" class="folder-list"></div>
+        </div>
+        <div class="form-actions" style="margin-top: 20px;">
+          <button type="button" onclick="closeMoveModal()" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="fileUploadInput" hidden>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

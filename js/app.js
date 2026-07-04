@@ -249,6 +249,14 @@ function renderContent(searchQuery) {
 
   const toolbarHTML = `
     <div class="content-toolbar">
+      ${state.currentFolderId ? `
+      <button class="btn-back" id="backBtn" aria-label="Go back to parent folder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Back
+      </button>
+      ` : ''}
       <button class="btn-upload" id="uploadBtn" aria-label="Upload files">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
@@ -356,6 +364,11 @@ function renderContent(searchQuery) {
 
   const fileInput = document.getElementById('fileUploadInput');
   document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+
+  const backBtn = document.getElementById('backBtn');
+  if (backBtn) {
+    backBtn.addEventListener('click', goBack);
+  }
 
   const newFolderBtn = document.getElementById('newFolderBtn');
   if (newFolderBtn) {
@@ -683,6 +696,17 @@ async function navigateToFolder(folderId) {
   await loadFolderContents(folderId);
 }
 
+async function goBack() {
+  if (state.folderBreadcrumb && state.folderBreadcrumb.length > 0) {
+    // Go back to parent folder
+    const parentFolder = state.folderBreadcrumb[state.folderBreadcrumb.length - 1];
+    await navigateToFolder(parentFolder.id);
+  } else {
+    // Go back to root
+    await navigateToFolder(null);
+  }
+}
+
 function updateFolderBreadcrumb() {
   const breadcrumbEl = document.querySelector('.breadcrumb');
   if (!breadcrumbEl) return;
@@ -811,6 +835,50 @@ function openFolderModal(type, folderData = null) {
 
 function closeFolderModal() {
   const modal = document.getElementById('folderModal');
+  if (modal) modal.hidden = true;
+}
+
+function openMoveModal(file) {
+  const modal = document.getElementById('moveModal');
+  const modalTitle = document.getElementById('moveModalTitle');
+  const folderList = document.getElementById('moveModalFolders');
+  const fileNameDisplay = document.getElementById('moveFileName');
+
+  fileNameDisplay.textContent = file.fileName;
+  modalTitle.textContent = `Move "${file.fileName}"`;
+
+  // Clear previous options
+  folderList.innerHTML = '';
+
+  // Add "Root" option
+  const rootOption = document.createElement('div');
+  rootOption.className = 'folder-option';
+  rootOption.textContent = '📁 Root';
+  rootOption.addEventListener('click', async () => {
+    await moveFileToFolder(file._id, null);
+    closeMoveModal();
+  });
+  folderList.appendChild(rootOption);
+
+  // Add current folders
+  if (state.userFolders && state.userFolders.length > 0) {
+    state.userFolders.forEach(folder => {
+      const option = document.createElement('div');
+      option.className = 'folder-option';
+      option.textContent = `📁 ${folder.folderName}`;
+      option.addEventListener('click', async () => {
+        await moveFileToFolder(file._id, folder._id);
+        closeMoveModal();
+      });
+      folderList.appendChild(option);
+    });
+  }
+
+  modal.hidden = false;
+}
+
+function closeMoveModal() {
+  const modal = document.getElementById('moveModal');
   if (modal) modal.hidden = true;
 }
 

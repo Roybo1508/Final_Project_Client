@@ -14,6 +14,8 @@ const FOLDER_ICON = `<svg viewBox="0 0 24 24" fill="#fbbf24" stroke="currentColo
 
 const EDIT_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
 
+const MOVE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="5 9 2 12 5 15"/><polyline points="9 18 12 21 15 18"/><line x1="2" y1="12" x2="12" y2="12"/><line x1="12" y1="21" x2="12" y2="11"/></svg>`;
+
 function getFileIcon(type) {
   return FILE_ICONS[type] || FILE_ICONS.other;
 }
@@ -89,6 +91,16 @@ function renderFileCard(file) {
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `${file.fileName}, ${formatFileSize(file.fileSizeKB)}. Click to download`);
+
+  const moveBtn = document.createElement('button');
+  moveBtn.className = 'card-move-btn';
+  moveBtn.innerHTML = MOVE_ICON;
+  moveBtn.setAttribute('aria-label', `Move ${file.fileName}`);
+  moveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMoveModal(file);
+  });
+  card.appendChild(moveBtn);
 
   const shareBtn = document.createElement('button');
   shareBtn.className = 'card-share-btn';
