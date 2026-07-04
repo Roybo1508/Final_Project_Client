@@ -12,6 +12,10 @@ const state = {
   adminUsers: [],
   allFiles: [],
   isLoading: false,
+  userFolders: [],
+  currentFolderId: null,
+  folderBreadcrumb: [],
+  currentFolderFolders: [],
 };
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
@@ -160,7 +164,8 @@ function handleFileUpload(file) {
         fileName: file.name,
         fileType: mimeToFileType(file.type),
         fileSizeKB: Math.max(1, Math.round(file.size / 1024)),
-        fileData: reader.result
+        fileData: reader.result,
+        folderId: state.currentFolderId || null
       });
       showToast('File uploaded successfully', 'success');
       await loadUserFiles();
@@ -251,6 +256,12 @@ function renderContent(searchQuery) {
         </svg>
         Upload
       </button>
+      <button class="btn-new-folder" id="newFolderBtn" aria-label="Create new folder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+        </svg>
+        New Folder
+      </button>
       <div class="view-toggle" role="group" aria-label="View mode">
         <button class="view-btn ${viewMode === 'grid' ? 'active' : ''}" id="gridViewBtn" aria-label="Grid view" aria-pressed="${viewMode === 'grid'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -338,13 +349,18 @@ function renderContent(searchQuery) {
   } else if (activeView === 'photos') {
     container.appendChild(renderPhotoGrid(state.userFiles));
   } else {
-    const grid = renderFileGrid(state.userFiles);
+    const grid = renderFileGrid(state.userFiles, state.currentFolderFolders);
     if (viewMode === 'list') grid.classList.add('list-view');
     container.appendChild(grid);
   }
 
   const fileInput = document.getElementById('fileUploadInput');
   document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+
+  const newFolderBtn = document.getElementById('newFolderBtn');
+  if (newFolderBtn) {
+    newFolderBtn.addEventListener('click', () => openFolderModal('create'));
+  }
 
   document.getElementById('gridViewBtn').addEventListener('click', () => {
     state.viewMode = 'grid';
@@ -372,6 +388,9 @@ async function navigateTo(view) {
   updateActiveNav(view);
 
   if (isFilesView(view)) {
+    if (view === 'my-files') {
+      await loadRootFolders();
+    }
     await loadUserFiles();
     return;
   }
@@ -419,6 +438,7 @@ async function switchRole(role) {
     await loadAdminUsers();
     renderContent();
   } else {
+    await loadRootFolders();
     await loadUserFiles();
   }
 }
@@ -615,6 +635,183 @@ function closeShareModal() {
   const shareOverlay = document.getElementById('shareModalOverlay');
   shareOverlay.hidden = true;
   document.getElementById('shareForm').reset();
+}
+
+// ---- Folder Management Functions ----
+async function loadUserFolders() {
+  try {
+    const res = await apiCall(`/folders?userId=${state.currentUser.id}`);
+    if (res.success) {
+      state.userFolders = res.folders || [];
+    }
+  } catch (err) {
+    console.error('Error loading folders:', err);
+  }
+}
+
+async function loadRootFolders() {
+  try {
+    await loadUserFolders();
+    state.currentFolderFolders = state.userFolders.filter(f => !f.parentFolderId);
+  } catch (err) {
+    console.error('Error loading root folders:', err);
+  }
+}
+
+async function loadFolderContents(folderId) {
+  try {
+    state.filesLoading = true;
+    state.currentFolderId = folderId;
+
+    const endpoint = folderId ? `/folders/${folderId}` : '/folders/root';
+    const res = await apiCall(`${endpoint}?userId=${state.currentUser.id}`);
+    if (res.success) {
+      state.userFiles = res.files || [];
+      state.currentFolderFolders = res.subfolders || [];
+      state.folderBreadcrumb = res.breadcrumb || [];
+      updateFolderBreadcrumb();
+      renderContent();
+    }
+  } catch (err) {
+    console.error('Error loading folder contents:', err);
+  } finally {
+    state.filesLoading = false;
+  }
+}
+
+async function navigateToFolder(folderId) {
+  await loadFolderContents(folderId);
+}
+
+function updateFolderBreadcrumb() {
+  const breadcrumbEl = document.querySelector('.breadcrumb');
+  if (!breadcrumbEl) return;
+
+  let html = '<span class="breadcrumb-link" onclick="navigateToFolder(null)">Home</span><span class="breadcrumb-sep"›</span>';
+
+  if (state.folderBreadcrumb && state.folderBreadcrumb.length > 0) {
+    state.folderBreadcrumb.forEach((item, idx) => {
+      html += `<span class="breadcrumb-link" onclick="navigateToFolder('${item.id}')">${item.name}</span>`;
+      if (idx < state.folderBreadcrumb.length - 1) html += '<span class="breadcrumb-sep">›</span>';
+    });
+  } else {
+    html += '<span class="breadcrumb-current">My Files</span>';
+  }
+
+  breadcrumbEl.innerHTML = html;
+}
+
+async function createNewFolder(folderName, parentFolderId) {
+  try {
+    const res = await apiCall('/folders', 'POST', {
+      userId: state.currentUser.id,
+      folderName,
+      parentFolderId: parentFolderId || null
+    });
+
+    if (res.success) {
+      showToast('Folder created successfully!', 'success');
+      await loadUserFolders();
+      await loadFolderContents(state.currentFolderId);
+      closeFolderModal();
+    } else {
+      showToast(res.message || 'Failed to create folder', 'error');
+    }
+  } catch (err) {
+    showToast('Error creating folder: ' + err.message, 'error');
+  }
+}
+
+async function renameFolder(folderId, newName) {
+  try {
+    const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`, 'PATCH', {
+      folderName: newName
+    });
+
+    if (res.success) {
+      showToast('Folder renamed successfully!', 'success');
+      await loadUserFolders();
+      await loadFolderContents(state.currentFolderId);
+      closeFolderModal();
+    } else {
+      showToast(res.message || 'Failed to rename folder', 'error');
+    }
+  } catch (err) {
+    showToast('Error renaming folder: ' + err.message, 'error');
+  }
+}
+
+async function deleteFolder(folderId) {
+  if (!confirm('Delete this folder and all its contents? This cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`, 'DELETE');
+
+    if (res.success) {
+      showToast('Folder deleted successfully!', 'success');
+      await loadUserFolders();
+      await loadFolderContents(state.currentFolderId);
+      closeFolderModal();
+    } else {
+      showToast(res.message || 'Failed to delete folder', 'error');
+    }
+  } catch (err) {
+    showToast('Error deleting folder: ' + err.message, 'error');
+  }
+}
+
+async function moveFileToFolder(fileId, targetFolderId) {
+  try {
+    const res = await apiCall(`/files/${fileId}/move`, 'POST', {
+      userId: state.currentUser.id,
+      folderId: targetFolderId || null
+    });
+
+    if (res.success) {
+      showToast('File moved successfully!', 'success');
+      await loadUserFiles();
+      closeFolderModal();
+    } else {
+      showToast(res.message || 'Failed to move file', 'error');
+    }
+  } catch (err) {
+    showToast('Error moving file: ' + err.message, 'error');
+  }
+}
+
+function openFolderModal(type, folderData = null) {
+  const modal = document.getElementById('folderModal');
+  const modalTitle = document.getElementById('folderModalTitle');
+  const folderNameInput = document.getElementById('folderNameInput');
+  const submitBtn = document.getElementById('folderModalSubmit');
+
+  folderNameInput.value = '';
+
+  if (type === 'create') {
+    modalTitle.textContent = 'Create New Folder';
+    submitBtn.textContent = 'Create';
+    submitBtn.onclick = () => {
+      const name = folderNameInput.value.trim();
+      if (name) createNewFolder(name, state.currentFolderId);
+    };
+  } else if (type === 'rename' && folderData) {
+    modalTitle.textContent = 'Rename Folder';
+    folderNameInput.value = folderData.folderName;
+    submitBtn.textContent = 'Rename';
+    submitBtn.onclick = () => {
+      const name = folderNameInput.value.trim();
+      if (name) renameFolder(folderData._id, name);
+    };
+  }
+
+  modal.hidden = false;
+}
+
+function closeFolderModal() {
+  const modal = document.getElementById('folderModal');
+  if (modal) modal.hidden = true;
 }
 
 document.getElementById('loginTab').addEventListener('click', () => setAuthMode('login'));

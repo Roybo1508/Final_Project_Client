@@ -315,3 +315,42 @@
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* Folder Modal */
+#folderModal {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+#folderModal:not([hidden]) {
+  display: flex;
+  opacity: 1;
+  pointer-events: all;
+}
+
+#folderModalContent {
+  background: var(--bg-modal);
+  border-radius: var(--radius-lg);
+  width: 400px;
+  max-width: 90vw;
+  border: 1px solid var(--border-hover);
+}
+
+#folderForm {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-content {
+  background: var(--bg-modal);
+  border-radius: var(--radius-lg);
+  width: 400px;
+  max-width: 90vw;
+  border: 1px solid var(--border-hover);
+  max-height: 80vh;
+  overflow-y: auto;
+}

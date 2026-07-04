@@ -193,6 +193,25 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="folderModal" role="dialog" aria-modal="true" hidden>
+    <div class="modal-content" id="folderModalContent">
+      <div class="modal-header">
+        <h3 id="folderModalTitle">Create New Folder</h3>
+        <button class="modal-close" onclick="closeFolderModal()" aria-label="Close folder modal">×</button>
+      </div>
+      <form id="folderForm" onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="folderNameInput">Folder Name *</label>
+          <input type="text" id="folderNameInput" placeholder="My Folder" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="folderModalSubmit" class="btn btn-primary">Create</button>
+          <button type="button" onclick="closeFolderModal()" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <input type="file" id="fileUploadInput" hidden>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
