@@ -8,6 +8,8 @@ const FILE_ICONS = {
 
 const TRASH_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
 
+const SHARE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
+
 function getFileIcon(type) {
   return FILE_ICONS[type] || FILE_ICONS.other;
 }
@@ -23,6 +25,16 @@ function renderFileCard(file) {
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `${file.fileName}, ${formatFileSize(file.fileSizeKB)}. Click to download`);
+
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'card-share-btn';
+  shareBtn.innerHTML = SHARE_ICON;
+  shareBtn.setAttribute('aria-label', `Share ${file.fileName}`);
+  shareBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openShareModal(file);
+  });
+  card.appendChild(shareBtn);
 
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'card-delete-btn';
@@ -84,6 +96,15 @@ function renderPhotoGrid(imageFiles) {
     img.src = file.fileData;
     img.alt = file.fileName;
 
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'card-share-btn';
+    shareBtn.innerHTML = SHARE_ICON;
+    shareBtn.setAttribute('aria-label', `Share ${file.fileName}`);
+    shareBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openShareModal(file);
+    });
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'card-delete-btn';
     deleteBtn.innerHTML = TRASH_ICON;
@@ -94,6 +115,7 @@ function renderPhotoGrid(imageFiles) {
     });
 
     card.appendChild(img);
+    card.appendChild(shareBtn);
     card.appendChild(deleteBtn);
 
     card.addEventListener('click', () => downloadFile(file._id));

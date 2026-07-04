@@ -544,9 +544,88 @@ function logout() {
   showAuthScreen();
 }
 
+// ---- Share Functions ----
+function openShareModal(file) {
+  const shareOverlay = document.getElementById('shareModalOverlay');
+  const shareForm = document.getElementById('shareForm');
+  const fileNameDisplay = document.getElementById('shareFileName');
+  const shareEmail = document.getElementById('shareEmail');
+  const sharePasswordCheckbox = document.getElementById('sharePasswordCheckbox');
+  const sharePasswordInput = document.getElementById('sharePasswordInput');
+  const shareExpirationCheckbox = document.getElementById('shareExpirationCheckbox');
+  const shareExpirationDays = document.getElementById('shareExpirationDays');
+
+  fileNameDisplay.textContent = file.fileName;
+  shareEmail.value = '';
+  sharePasswordCheckbox.checked = false;
+  sharePasswordInput.hidden = true;
+  sharePasswordInput.value = '';
+  shareExpirationCheckbox.checked = false;
+  shareExpirationDays.hidden = true;
+
+  shareOverlay.hidden = false;
+
+  const passwordToggle = (e) => {
+    sharePasswordInput.hidden = !sharePasswordCheckbox.checked;
+    if (!sharePasswordCheckbox.checked) sharePasswordInput.value = '';
+  };
+
+  const expirationToggle = (e) => {
+    shareExpirationDays.hidden = !shareExpirationCheckbox.checked;
+  };
+
+  sharePasswordCheckbox.removeEventListener('change', passwordToggle);
+  shareExpirationCheckbox.removeEventListener('change', expirationToggle);
+  sharePasswordCheckbox.addEventListener('change', passwordToggle);
+  shareExpirationCheckbox.addEventListener('change', expirationToggle);
+
+  shareForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const recipientEmail = shareEmail.value.trim();
+    const password = sharePasswordCheckbox.checked ? sharePasswordInput.value : null;
+    const expirationDays = shareExpirationCheckbox.checked ? shareExpirationDays.value : null;
+
+    if (!recipientEmail) {
+      showToast('Please enter a recipient email', 'error');
+      return;
+    }
+
+    if (sharePasswordCheckbox.checked && !password) {
+      showToast('Please enter a password', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/files/${file._id}/share`, 'POST', {
+        recipientEmail,
+        password: password || undefined,
+        expirationDays: expirationDays || undefined,
+        senderName: state.currentUser?.username || 'Someone'
+      });
+
+      showToast(`File shared! Email sent to ${recipientEmail}`, 'success');
+      closeShareModal();
+    } catch (error) {
+      showToast(error.message || 'Failed to share file', 'error');
+    }
+  };
+}
+
+function closeShareModal() {
+  const shareOverlay = document.getElementById('shareModalOverlay');
+  shareOverlay.hidden = true;
+  document.getElementById('shareForm').reset();
+}
+
 document.getElementById('loginTab').addEventListener('click', () => setAuthMode('login'));
 document.getElementById('registerTab').addEventListener('click', () => setAuthMode('register'));
 document.getElementById('authForm').addEventListener('submit', handleAuthSubmit);
+
+document.getElementById('shareModalClose').addEventListener('click', closeShareModal);
+document.getElementById('shareCancel').addEventListener('click', closeShareModal);
+document.getElementById('shareModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'shareModalOverlay') closeShareModal();
+});
 
 // ---- Init: restore session or show login ----
 (async () => {
