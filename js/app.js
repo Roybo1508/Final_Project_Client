@@ -685,22 +685,30 @@ async function loadFolderContents(folderId) {
     return;
   }
 
-  try {
-    state.filesLoading = true;
-    state.currentFolderId = folderId;
+  // Show the loading spinner immediately so opening a folder feels responsive
+  // instead of freezing on the previous view until the request returns.
+  state.filesLoading = true;
+  state.currentFolderId = folderId;
+  renderContent();
 
+  try {
     const res = await apiCall(`/folders/${folderId}?userId=${state.currentUser.id}`);
     if (res.success) {
       state.userFiles = res.files || [];
       state.currentFolderFolders = res.subfolders || [];
-      state.folderBreadcrumb = res.breadcrumb || [];
-      updateFolderBreadcrumb();
-      renderContent();
+      // Backend doesn't return a full path; show at least the current folder name.
+      state.folderBreadcrumb = res.breadcrumb
+        || (res.folder ? [{ id: res.folder._id, name: res.folder.folderName }] : []);
     }
   } catch (err) {
     console.error('Error loading folder contents:', err);
   } finally {
+    // Clear the loading flag BEFORE rendering, otherwise renderContent draws the
+    // spinner again instead of the folder's files. Apply the folder breadcrumb
+    // after renderContent so it isn't overwritten by the static breadcrumb.
     state.filesLoading = false;
+    renderContent();
+    updateFolderBreadcrumb();
   }
 }
 
